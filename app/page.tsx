@@ -7,9 +7,16 @@ import { AddLocationModal } from "@/components/add-location-modal"
 import { StatsPanel } from "@/components/stats-panel"
 import { FilterBar } from "@/components/filter-bar"
 import { CoordinateMap } from "@/components/coordinate-map"
-import { ScreenshotsSection } from "@/components/screenshots-section"
 import type { Location, LocationType, Dimension, World } from "@/lib/types"
-import { getWorlds, getLocations, createWorld, createLocation, updateLocation, deleteLocation } from "@/app/actions"
+import {
+  getWorlds,
+  getLocations,
+  createWorld,
+  createLocation,
+  updateLocation,
+  deleteLocation,
+  toggleFavorite,
+} from "@/app/actions"
 
 export default function Home() {
   const [worlds, setWorlds] = useState<World[]>([])
@@ -17,7 +24,7 @@ export default function Home() {
   const [locations, setLocations] = useState<Location[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingLocation, setEditingLocation] = useState<Location | null>(null)
-  const [activeFilter, setActiveFilter] = useState<LocationType | "all">("all")
+  const [activeFilter, setActiveFilter] = useState<LocationType | "all" | "favorites">("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [mapDimension, setMapDimension] = useState<Dimension>("overworld")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
@@ -53,16 +60,24 @@ export default function Home() {
     loadLocations()
   }, [activeWorld])
 
-  // Get screenshots for separate section
-  const screenshots = locations.filter((loc) => loc.type === "screenshot")
+  const filteredLocations = locations
+    .filter((loc) => {
+      // Exclude screenshots from display
+      if (loc.type === "screenshot") return false
 
-  const filteredLocations = locations.filter((loc) => {
-    const matchesType = activeFilter === "all" || loc.type === activeFilter
-    const matchesSearch =
-      loc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      loc.description?.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesType && matchesSearch
-  })
+      const matchesType = activeFilter === "all" || activeFilter === "favorites" || loc.type === activeFilter
+      const matchesFavorites = activeFilter !== "favorites" || loc.favorite
+      const matchesSearch =
+        loc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        loc.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      return matchesType && matchesFavorites && matchesSearch
+    })
+    .sort((a, b) => {
+      // Favorites first
+      if (a.favorite && !b.favorite) return -1
+      if (!a.favorite && b.favorite) return 1
+      return 0
+    })
 
   const handleAddLocation = async (newLocation: Omit<Location, "id" | "created_at">) => {
     try {
@@ -91,6 +106,15 @@ export default function Home() {
       setLocations(locations.filter((loc) => loc.id !== id))
     } catch (error) {
       console.error("Error deleting location:", error)
+    }
+  }
+
+  const handleToggleFavorite = async (id: string, favorite: boolean) => {
+    try {
+      const updated = await toggleFavorite(id, favorite)
+      setLocations(locations.map((loc) => (loc.id === id ? updated : loc)))
+    } catch (error) {
+      console.error("Error toggling favorite:", error)
     }
   }
 
@@ -167,10 +191,9 @@ export default function Home() {
           locations={filteredLocations}
           onDelete={handleDeleteLocation}
           onEdit={handleOpenEdit}
+          onToggleFavorite={handleToggleFavorite}
           viewMode={viewMode}
         />
-
-        <ScreenshotsSection screenshots={screenshots} onDelete={handleDeleteLocation} />
       </main>
 
       <AddLocationModal

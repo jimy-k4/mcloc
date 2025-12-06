@@ -49,6 +49,7 @@ export async function createLocation(location: Omit<Location, "id" | "created_at
       world_id: location.world_id,
       description: location.description || null,
       screenshot_url: location.screenshot_url || null,
+      favorite: location.favorite || false,
     })
     .select()
     .single()
@@ -71,10 +72,20 @@ export async function updateLocation(location: Location): Promise<Location> {
       dimension: location.dimension,
       description: location.description || null,
       screenshot_url: location.screenshot_url || null,
+      favorite: location.favorite,
     })
     .eq("id", location.id)
     .select()
     .single()
+
+  if (error) throw error
+  revalidatePath("/")
+  return mapDbLocation(data as DbLocation)
+}
+
+export async function toggleFavorite(id: string, favorite: boolean): Promise<Location> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.from("locations").update({ favorite }).eq("id", id).select().single()
 
   if (error) throw error
   revalidatePath("/")
@@ -103,5 +114,6 @@ function mapDbLocation(db: DbLocation): Location {
     description: db.description,
     screenshot_url: db.screenshot_url,
     created_at: db.created_at,
+    favorite: db.favorite,
   }
 }

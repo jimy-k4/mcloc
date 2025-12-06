@@ -2,15 +2,15 @@
 
 import type React from "react"
 
-import { Search, Grid3X3, List } from "lucide-react"
+import { Search, Grid3X3, List, Star } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { LOCATION_TYPES, getLocationIcon } from "@/lib/location-config"
 import type { LocationType } from "@/lib/types"
 
 interface FilterBarProps {
-  activeFilter: LocationType | "all"
-  onFilterChange: (filter: LocationType | "all") => void
+  activeFilter: LocationType | "all" | "favorites"
+  onFilterChange: (filter: LocationType | "all" | "favorites") => void
   searchQuery: string
   onSearchChange: (query: string) => void
   viewMode: "grid" | "list"
@@ -25,8 +25,6 @@ export function FilterBar({
   viewMode,
   onViewModeChange,
 }: FilterBarProps) {
-  const filterableTypes = LOCATION_TYPES.filter((t) => t.value !== "screenshot")
-
   return (
     <div className="mb-8 space-y-4">
       {/* Search */}
@@ -66,7 +64,14 @@ export function FilterBar({
           icon={<Grid3X3 className="w-4 h-4" />}
           label="TODOS"
         />
-        {filterableTypes.map((type) => (
+        <FilterChip
+          active={activeFilter === "favorites"}
+          onClick={() => onFilterChange("favorites")}
+          icon={<Star className="w-4 h-4" />}
+          label="FAVORITOS"
+          highlight
+        />
+        {LOCATION_TYPES.map((type) => (
           <FilterChip
             key={type.value}
             active={activeFilter === type.value}
@@ -85,11 +90,13 @@ function FilterChip({
   onClick,
   icon,
   label,
+  highlight,
 }: {
   active: boolean
   onClick: () => void
   icon: React.ReactNode
   label: string
+  highlight?: boolean
 }) {
   return (
     <button
@@ -99,8 +106,12 @@ function FilterChip({
         border transition-all duration-200
         ${
           active
-            ? "bg-primary text-primary-foreground border-primary"
-            : "bg-card/50 text-muted-foreground border-border/50 hover:border-primary/50 hover:text-foreground"
+            ? highlight
+              ? "bg-amber-500 text-black border-amber-500"
+              : "bg-primary text-primary-foreground border-primary"
+            : highlight
+              ? "bg-card/50 text-amber-500 border-amber-500/50 hover:border-amber-500 hover:bg-amber-500/10"
+              : "bg-card/50 text-muted-foreground border-border/50 hover:border-primary/50 hover:text-foreground"
         }
       `}
     >

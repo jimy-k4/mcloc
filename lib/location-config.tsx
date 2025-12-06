@@ -1,5 +1,5 @@
 import type React from "react"
-import { Home, Disc, Skull, Users, Castle, Trees, Gem, Camera, Mountain, Flame, Moon } from "lucide-react"
+import { Home, Disc, Skull, Users, Castle, Trees, Gem, MountainSnow, Mountain, Flame, Moon } from "lucide-react"
 import type { LocationType, Dimension } from "./types"
 
 export const LOCATION_TYPES: { value: LocationType; label: string }[] = [
@@ -9,8 +9,8 @@ export const LOCATION_TYPES: { value: LocationType; label: string }[] = [
   { value: "village", label: "Aldea" },
   { value: "structure", label: "Estructura" },
   { value: "biome", label: "Bioma" },
+  { value: "cave", label: "Cueva" },
   { value: "resource", label: "Recurso" },
-  { value: "screenshot", label: "Captura" },
 ]
 
 export const DIMENSIONS: {
@@ -51,8 +51,8 @@ export function getLocationIcon(type: LocationType, className = "w-5 h-5") {
     village: <Users className={className} />,
     structure: <Castle className={className} />,
     biome: <Trees className={className} />,
+    cave: <MountainSnow className={className} />,
     resource: <Gem className={className} />,
-    screenshot: <Camera className={className} />,
   }
   return icons[type]
 }

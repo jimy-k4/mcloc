@@ -1,6 +1,6 @@
 "use client"
 
-import { Trash2, Pencil } from "lucide-react"
+import { Trash2, Pencil, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getLocationIcon, getDimensionColor, getDimensionLabel } from "@/lib/location-config"
 import type { Location } from "@/lib/types"
@@ -9,10 +9,11 @@ interface LocationGridProps {
   locations: Location[]
   onDelete: (id: string) => void
   onEdit: (location: Location) => void
+  onToggleFavorite: (id: string, favorite: boolean) => void
   viewMode: "grid" | "list"
 }
 
-export function LocationGrid({ locations, onDelete, onEdit, viewMode }: LocationGridProps) {
+export function LocationGrid({ locations, onDelete, onEdit, onToggleFavorite, viewMode }: LocationGridProps) {
   const gridLocations = locations.filter((loc) => loc.type !== "screenshot")
 
   if (gridLocations.length === 0) {
@@ -36,6 +37,7 @@ export function LocationGrid({ locations, onDelete, onEdit, viewMode }: Location
             location={location}
             onDelete={() => onDelete(location.id)}
             onEdit={() => onEdit(location)}
+            onToggleFavorite={() => onToggleFavorite(location.id, !location.favorite)}
           />
         ))}
       </div>
@@ -50,6 +52,7 @@ export function LocationGrid({ locations, onDelete, onEdit, viewMode }: Location
           location={location}
           onDelete={() => onDelete(location.id)}
           onEdit={() => onEdit(location)}
+          onToggleFavorite={() => onToggleFavorite(location.id, !location.favorite)}
         />
       ))}
     </div>
@@ -60,10 +63,12 @@ function LocationListItem({
   location,
   onDelete,
   onEdit,
+  onToggleFavorite,
 }: {
   location: Location
   onDelete: () => void
   onEdit: () => void
+  onToggleFavorite: () => void
 }) {
   const dimensionColor = getDimensionColor(location.dimension)
 
@@ -76,6 +81,7 @@ function LocationListItem({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <h3 className="font-bold text-foreground truncate">{location.name}</h3>
+          {location.favorite && <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />}
           <span className={`text-[10px] font-mono tracking-widest ${dimensionColor.split(" ")[0]}`}>
             {getDimensionLabel(location.dimension)}
           </span>
@@ -96,6 +102,14 @@ function LocationListItem({
           </span>
         </div>
         <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggleFavorite}
+            className={`h-8 w-8 ${location.favorite ? "text-yellow-400" : "text-muted-foreground hover:text-yellow-400"}`}
+          >
+            <Star className={`w-4 h-4 ${location.favorite ? "fill-yellow-400" : ""}`} />
+          </Button>
           <Button
             variant="ghost"
             size="icon"
@@ -122,10 +136,12 @@ function LocationCard({
   location,
   onDelete,
   onEdit,
+  onToggleFavorite,
 }: {
   location: Location
   onDelete: () => void
   onEdit: () => void
+  onToggleFavorite: () => void
 }) {
   const dimensionColor = getDimensionColor(location.dimension)
 
@@ -139,7 +155,10 @@ function LocationCard({
               {getLocationIcon(location.type)}
             </div>
             <div>
-              <h3 className="font-bold text-foreground leading-tight">{location.name}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-foreground leading-tight">{location.name}</h3>
+                {location.favorite && <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />}
+              </div>
               <span className={`text-[10px] font-mono tracking-widest ${dimensionColor.split(" ")[0]}`}>
                 {getDimensionLabel(location.dimension)}
               </span>
@@ -162,6 +181,14 @@ function LocationCard({
         )}
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggleFavorite}
+            className={`h-9 w-9 ${location.favorite ? "text-yellow-400" : "text-muted-foreground hover:text-yellow-400"}`}
+          >
+            <Star className={`w-4 h-4 ${location.favorite ? "fill-yellow-400" : ""}`} />
+          </Button>
           <Button
             variant="outline"
             size="sm"

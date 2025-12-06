@@ -3,11 +3,13 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { X, Upload, MapPin } from "lucide-react"
+import { X, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { LOCATION_TYPES, DIMENSIONS, getLocationIcon, getDimensionIcon } from "@/lib/location-config"
+import { getBiomesByDimension, getStructuresByDimension } from "@/lib/minecraft-data"
+import { SearchableSelect } from "@/components/searchable-select"
 import type { Location, LocationType, Dimension } from "@/lib/types"
 
 interface AddLocationModalProps {
@@ -34,7 +36,8 @@ export function AddLocationModal({
   const [y, setY] = useState("")
   const [z, setZ] = useState("")
   const [description, setDescription] = useState("")
-  const [screenshot, setScreenshot] = useState("")
+  const [selectedBiome, setSelectedBiome] = useState("")
+  const [selectedStructure, setSelectedStructure] = useState("")
 
   useEffect(() => {
     if (editingLocation) {
@@ -45,11 +48,20 @@ export function AddLocationModal({
       setY(editingLocation.y.toString())
       setZ(editingLocation.z.toString())
       setDescription(editingLocation.description || "")
-      setScreenshot(editingLocation.screenshot_url || "")
+      if (editingLocation.type === "biome") {
+        setSelectedBiome(editingLocation.name)
+      } else if (editingLocation.type === "structure") {
+        setSelectedStructure(editingLocation.name)
+      }
     } else {
       resetForm()
     }
   }, [editingLocation])
+
+  useEffect(() => {
+    setSelectedBiome("")
+    setSelectedStructure("")
+  }, [dimension])
 
   const resetForm = () => {
     setName("")
@@ -59,7 +71,8 @@ export function AddLocationModal({
     setY("")
     setZ("")
     setDescription("")
-    setScreenshot("")
+    setSelectedBiome("")
+    setSelectedStructure("")
   }
 
   if (!isOpen) return null
@@ -67,8 +80,15 @@ export function AddLocationModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
+    let finalName = name
+    if (type === "biome" && selectedBiome) {
+      finalName = selectedBiome
+    } else if (type === "structure" && selectedStructure) {
+      finalName = selectedStructure
+    }
+
     const locationData = {
-      name,
+      name: finalName,
       type,
       dimension,
       x: Number.parseInt(x) || 0,
@@ -76,7 +96,6 @@ export function AddLocationModal({
       z: Number.parseInt(z) || 0,
       description,
       world_id: activeWorld,
-      screenshot_url: type === "screenshot" ? screenshot : undefined,
     }
 
     if (editingLocation && onEdit) {
@@ -98,6 +117,8 @@ export function AddLocationModal({
   }
 
   const isEditing = !!editingLocation
+  const biomes = getBiomesByDimension(dimension)
+  const structures = getStructuresByDimension(dimension)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -125,19 +146,7 @@ export function AddLocationModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-6">
-          {/* Name */}
-          <div>
-            <label className="text-xs font-mono text-muted-foreground mb-2 block">NOMBRE DE LA UBICACIÓN</label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ej: Base Principal"
-              className="h-12 font-mono bg-background border-border/50"
-              required
-            />
-          </div>
-
-          {/* Type Selection */}
+          {/* Type Selection - Removed screenshot type */}
           <div>
             <label className="text-xs font-mono text-muted-foreground mb-2 block">TIPO DE UBICACIÓN</label>
             <div className="grid grid-cols-4 gap-2">
@@ -156,7 +165,7 @@ export function AddLocationModal({
                   `}
                 >
                   {getLocationIcon(locType.value)}
-                  <span className="text-[9px] font-mono">{locType.label.toUpperCase()}</span>
+                  <span className="text-[8px] font-mono">{locType.label.toUpperCase()}</span>
                 </button>
               ))}
             </div>
@@ -186,6 +195,40 @@ export function AddLocationModal({
               ))}
             </div>
           </div>
+
+          {type === "biome" && (
+            <SearchableSelect
+              options={biomes}
+              value={selectedBiome}
+              onChange={setSelectedBiome}
+              placeholder="Selecciona un bioma..."
+              label="BIOMA"
+            />
+          )}
+
+          {type === "structure" && (
+            <SearchableSelect
+              options={structures}
+              value={selectedStructure}
+              onChange={setSelectedStructure}
+              placeholder="Selecciona una estructura..."
+              label="ESTRUCTURA"
+            />
+          )}
+
+          {/* Name - hide if biome or structure is selected */}
+          {type !== "biome" && type !== "structure" && (
+            <div>
+              <label className="text-xs font-mono text-muted-foreground mb-2 block">NOMBRE DE LA UBICACIÓN</label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ej: Base Principal"
+                className="h-12 font-mono bg-background border-border/50"
+                required
+              />
+            </div>
+          )}
 
           {/* Coordinates */}
           <div>
@@ -227,26 +270,6 @@ export function AddLocationModal({
             </div>
           </div>
 
-          {/* Screenshot URL (only for screenshot type) */}
-          {type === "screenshot" && (
-            <div>
-              <label className="text-xs font-mono text-muted-foreground mb-2 block">URL DE LA CAPTURA</label>
-              <div className="relative">
-                <Upload className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  type="url"
-                  value={screenshot}
-                  onChange={(e) => setScreenshot(e.target.value)}
-                  placeholder="https://..."
-                  className="pl-12 h-12 font-mono bg-background border-border/50"
-                />
-              </div>
-              <p className="text-[10px] text-muted-foreground mt-1">
-                Sube tu captura a un servicio de imágenes y pega la URL
-              </p>
-            </div>
-          )}
-
           {/* Description */}
           <div>
             <label className="text-xs font-mono text-muted-foreground mb-2 block">DESCRIPCIÓN (OPCIONAL)</label>
@@ -262,6 +285,7 @@ export function AddLocationModal({
           <Button
             type="submit"
             className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg tracking-wide"
+            disabled={(type === "biome" && !selectedBiome) || (type === "structure" && !selectedStructure)}
           >
             {isEditing ? "GUARDAR CAMBIOS" : "GUARDAR UBICACIÓN"}
           </Button>

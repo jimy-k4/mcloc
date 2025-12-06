@@ -1,4 +1,13 @@
-export type LocationType = "base" | "portal" | "spawner" | "village" | "structure" | "biome" | "resource" | "screenshot"
+export type LocationType =
+  | "base"
+  | "portal"
+  | "spawner"
+  | "village"
+  | "structure"
+  | "biome"
+  | "cave"
+  | "resource"
+  | "screenshot"
 
 export type Dimension = "overworld" | "nether" | "end"
 
@@ -14,6 +23,7 @@ export interface Location {
   description?: string | null
   screenshot_url?: string | null
   created_at: string
+  favorite: boolean
 }
 
 export interface World {
@@ -35,6 +45,7 @@ export interface DbLocation {
   description: string | null
   screenshot_url: string | null
   created_at: string
+  favorite: boolean
 }
 
 export interface DbWorld {
