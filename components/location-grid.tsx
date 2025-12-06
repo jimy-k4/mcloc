@@ -1,9 +1,20 @@
 "use client"
 
+import { useState } from "react"
 import { Trash2, Pencil, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { getLocationIcon, getDimensionColor, getDimensionLabel } from "@/lib/location-config"
+import { getLocationIcon, getDimensionColor, getDimensionLabel, getTypeLabel } from "@/lib/location-config"
 import type { Location } from "@/lib/types"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 interface LocationGridProps {
   locations: Location[]
@@ -14,7 +25,23 @@ interface LocationGridProps {
 }
 
 export function LocationGrid({ locations, onDelete, onEdit, onToggleFavorite, viewMode }: LocationGridProps) {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [locationToDelete, setLocationToDelete] = useState<Location | null>(null)
+
   const gridLocations = locations.filter((loc) => loc.type !== "screenshot")
+
+  const handleDeleteClick = (location: Location) => {
+    setLocationToDelete(location)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDelete = () => {
+    if (locationToDelete) {
+      onDelete(locationToDelete.id)
+    }
+    setDeleteDialogOpen(false)
+    setLocationToDelete(null)
+  }
 
   if (gridLocations.length === 0) {
     return (
@@ -28,34 +55,56 @@ export function LocationGrid({ locations, onDelete, onEdit, onToggleFavorite, vi
     )
   }
 
-  if (viewMode === "list") {
-    return (
-      <div className="border border-border/50 divide-y divide-border/30">
-        {gridLocations.map((location) => (
-          <LocationListItem
-            key={location.id}
-            location={location}
-            onDelete={() => onDelete(location.id)}
-            onEdit={() => onEdit(location)}
-            onToggleFavorite={() => onToggleFavorite(location.id, !location.favorite)}
-          />
-        ))}
-      </div>
-    )
-  }
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {gridLocations.map((location) => (
-        <LocationCard
-          key={location.id}
-          location={location}
-          onDelete={() => onDelete(location.id)}
-          onEdit={() => onEdit(location)}
-          onToggleFavorite={() => onToggleFavorite(location.id, !location.favorite)}
-        />
-      ))}
-    </div>
+    <>
+      {viewMode === "list" ? (
+        <div className="border border-border/50 divide-y divide-border/30">
+          {gridLocations.map((location) => (
+            <LocationListItem
+              key={location.id}
+              location={location}
+              onDelete={() => handleDeleteClick(location)}
+              onEdit={() => onEdit(location)}
+              onToggleFavorite={() => onToggleFavorite(location.id, !location.favorite)}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {gridLocations.map((location) => (
+            <LocationCard
+              key={location.id}
+              location={location}
+              onDelete={() => handleDeleteClick(location)}
+              onEdit={() => onEdit(location)}
+              onToggleFavorite={() => onToggleFavorite(location.id, !location.favorite)}
+            />
+          ))}
+        </div>
+      )}
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-mono">ELIMINAR UBICACIÓN</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que quieres eliminar{" "}
+              <span className="text-foreground font-bold">{locationToDelete?.name}</span>? Esta acción no se puede
+              deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="font-mono text-xs">CANCELAR</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive hover:bg-destructive/90 font-mono text-xs"
+            >
+              ELIMINAR
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }
 
@@ -82,6 +131,9 @@ function LocationListItem({
         <div className="flex items-center gap-2">
           <h3 className="font-bold text-foreground truncate">{location.name}</h3>
           {location.favorite && <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />}
+          <span className="text-[10px] font-mono tracking-widest text-muted-foreground bg-muted/30 px-1.5 py-0.5">
+            {getTypeLabel(location.type)}
+          </span>
           <span className={`text-[10px] font-mono tracking-widest ${dimensionColor.split(" ")[0]}`}>
             {getDimensionLabel(location.dimension)}
           </span>
@@ -159,9 +211,14 @@ function LocationCard({
                 <h3 className="font-bold text-foreground leading-tight">{location.name}</h3>
                 {location.favorite && <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />}
               </div>
-              <span className={`text-[10px] font-mono tracking-widest ${dimensionColor.split(" ")[0]}`}>
-                {getDimensionLabel(location.dimension)}
-              </span>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[10px] font-mono tracking-widest text-muted-foreground bg-muted/30 px-1.5 py-0.5">
+                  {getTypeLabel(location.type)}
+                </span>
+                <span className={`text-[10px] font-mono tracking-widest ${dimensionColor.split(" ")[0]}`}>
+                  {getDimensionLabel(location.dimension)}
+                </span>
+              </div>
             </div>
           </div>
         </div>

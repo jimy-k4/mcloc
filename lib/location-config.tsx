@@ -83,3 +83,17 @@ export function getDimensionLabel(dimension: Dimension): string {
   }
   return labels[dimension]
 }
+
+export function getTypeLabel(type: LocationType): string {
+  const labels: Record<LocationType, string> = {
+    base: "BASE",
+    portal: "PORTAL",
+    spawner: "SPAWNER",
+    village: "ALDEA",
+    structure: "ESTRUCTURA",
+    biome: "BIOMA",
+    cave: "CUEVA",
+    resource: "RECURSO",
+  }
+  return labels[type]
+}
