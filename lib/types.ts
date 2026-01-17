@@ -24,6 +24,7 @@ export interface Location {
   screenshot_url?: string | null
   created_at: string
   favorite: boolean
+  color?: string | null
 }
 
 export interface World {
@@ -46,6 +47,7 @@ export interface DbLocation {
   screenshot_url: string | null
   created_at: string
   favorite: boolean
+  color: string | null
 }
 
 export interface DbWorld {

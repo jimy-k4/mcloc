@@ -50,6 +50,7 @@ export async function createLocation(location: Omit<Location, "id" | "created_at
       description: location.description || null,
       screenshot_url: location.screenshot_url || null,
       favorite: location.favorite || false,
+      color: location.color || null,
     })
     .select()
     .single()
@@ -73,6 +74,7 @@ export async function updateLocation(location: Location): Promise<Location> {
       description: location.description || null,
       screenshot_url: location.screenshot_url || null,
       favorite: location.favorite,
+      color: location.color || null,
     })
     .eq("id", location.id)
     .select()
@@ -115,5 +117,6 @@ function mapDbLocation(db: DbLocation): Location {
     screenshot_url: db.screenshot_url,
     created_at: db.created_at,
     favorite: db.favorite,
+    color: db.color,
   }
 }

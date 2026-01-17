@@ -67,10 +67,11 @@ export default function Home() {
 
       const matchesType = activeFilter === "all" || activeFilter === "favorites" || loc.type === activeFilter
       const matchesFavorites = activeFilter !== "favorites" || loc.favorite
+      const matchesDimension = loc.dimension === mapDimension
       const matchesSearch =
         loc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         loc.description?.toLowerCase().includes(searchQuery.toLowerCase())
-      return matchesType && matchesFavorites && matchesSearch
+      return matchesType && matchesFavorites && matchesDimension && matchesSearch
     })
     .sort((a, b) => {
       // Favorites first
@@ -176,8 +177,6 @@ export default function Home() {
       <main className="container mx-auto px-4 py-8 space-y-6">
         <StatsPanel locations={locations} />
 
-        <CoordinateMap locations={locations} activeDimension={mapDimension} onDimensionChange={setMapDimension} />
-
         <FilterBar
           activeFilter={activeFilter}
           onFilterChange={setActiveFilter}
@@ -185,7 +184,11 @@ export default function Home() {
           onSearchChange={setSearchQuery}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
+          activeDimension={mapDimension}
+          onDimensionChange={setMapDimension}
         />
+
+        <CoordinateMap locations={filteredLocations} activeDimension={mapDimension} />
 
         <LocationGrid
           locations={filteredLocations}

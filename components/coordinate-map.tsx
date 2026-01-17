@@ -5,16 +5,15 @@ import type React from "react"
 import { useRef, useEffect, useState, useCallback, useMemo } from "react"
 import { ZoomIn, ZoomOut, Maximize2, Move, Crosshair, MapPinOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { getLocationIcon, getDimensionColor } from "@/lib/location-config"
+import { getLocationIcon } from "@/lib/location-config"
 import type { Location, Dimension } from "@/lib/types"
 
 interface CoordinateMapProps {
   locations: Location[]
   activeDimension: Dimension
-  onDimensionChange: (dimension: Dimension) => void
 }
 
-export function CoordinateMap({ locations, activeDimension, onDimensionChange }: CoordinateMapProps) {
+export function CoordinateMap({ locations, activeDimension }: CoordinateMapProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [zoom, setZoom] = useState(1)
@@ -128,8 +127,20 @@ export function CoordinateMap({ locations, activeDimension, onDimensionChange }:
 
       // Glow effect
       const gradient = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, radius * 2)
-      const color =
-        loc.dimension === "overworld" ? "34, 197, 94" : loc.dimension === "nether" ? "239, 68, 68" : "168, 85, 247"
+      let color = "34, 197, 94" // default green
+      if (loc.color) {
+        // Convert hex to RGB
+        const hex = loc.color.replace("#", "")
+        const r = Number.parseInt(hex.substring(0, 2), 16)
+        const g = Number.parseInt(hex.substring(2, 4), 16)
+        const b = Number.parseInt(hex.substring(4, 6), 16)
+        color = `${r}, ${g}, ${b}`
+      } else {
+        // Use dimension default colors
+        color =
+          loc.dimension === "overworld" ? "34, 197, 94" : loc.dimension === "nether" ? "239, 68, 68" : "168, 85, 247"
+      }
+
       gradient.addColorStop(0, `rgba(${color}, 0.6)`)
       gradient.addColorStop(1, `rgba(${color}, 0)`)
       ctx.fillStyle = gradient
@@ -222,8 +233,6 @@ export function CoordinateMap({ locations, activeDimension, onDimensionChange }:
     setOffset({ x: 0, y: 0 })
   }
 
-  const dimensions: Dimension[] = ["overworld", "nether", "end"]
-
   return (
     <div className="border border-border/50 bg-card/30 overflow-hidden">
       {/* Controls */}
@@ -231,22 +240,6 @@ export function CoordinateMap({ locations, activeDimension, onDimensionChange }:
         <div className="flex items-center gap-2">
           <Crosshair className="w-4 h-4 text-primary" />
           <span className="font-mono text-xs text-muted-foreground">MAPA DE COORDENADAS</span>
-        </div>
-
-        <div className="flex items-center gap-1">
-          {dimensions.map((dim) => (
-            <button
-              key={dim}
-              onClick={() => onDimensionChange(dim)}
-              className={`px-3 py-1 text-[10px] font-mono tracking-wider border transition-all ${
-                activeDimension === dim
-                  ? getDimensionColor(dim)
-                  : "border-border/30 text-muted-foreground hover:border-border"
-              }`}
-            >
-              {dim.toUpperCase()}
-            </button>
-          ))}
         </div>
 
         <div className="flex items-center gap-1">
@@ -301,7 +294,9 @@ export function CoordinateMap({ locations, activeDimension, onDimensionChange }:
           >
             <div className="flex items-center gap-2 mb-2">
               <div
-                className={`w-6 h-6 flex items-center justify-center ${getDimensionColor(hoveredLocation.dimension)}`}
+                className={`w-6 h-6 flex items-center justify-center ${
+                  hoveredLocation.color ? `bg-${hoveredLocation.color}` : "bg-green-500"
+                }`}
               >
                 {getLocationIcon(hoveredLocation.type, "w-4 h-4")}
               </div>

@@ -7,6 +7,7 @@ import { X, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { ColorPicker } from "@/components/color-picker"
 import { LOCATION_TYPES, DIMENSIONS, getLocationIcon, getDimensionIcon } from "@/lib/location-config"
 import { getBiomesByDimension, getStructuresByDimension } from "@/lib/minecraft-data"
 import { SearchableSelect } from "@/components/searchable-select"
@@ -38,6 +39,26 @@ export function AddLocationModal({
   const [description, setDescription] = useState("")
   const [selectedBiome, setSelectedBiome] = useState("")
   const [selectedStructure, setSelectedStructure] = useState("")
+  const [color, setColor] = useState("")
+
+  const defaultColors = {
+    overworld: "#22c55e",
+    nether: "#ef4444",
+    end: "#a855f7",
+  }
+
+  const presetColors = [
+    "#22c55e", // emerald
+    "#ef4444", // red
+    "#a855f7", // purple
+    "#3b82f6", // blue
+    "#f59e0b", // amber
+    "#ec4899", // pink
+    "#10b981", // green
+    "#f97316", // orange
+    "#8b5cf6", // violet
+    "#06b6d4", // cyan
+  ]
 
   useEffect(() => {
     if (editingLocation) {
@@ -48,6 +69,7 @@ export function AddLocationModal({
       setY(editingLocation.y.toString())
       setZ(editingLocation.z.toString())
       setDescription(editingLocation.description || "")
+      setColor(editingLocation.color || "")
       if (editingLocation.type === "biome") {
         setSelectedBiome(editingLocation.name)
       } else if (editingLocation.type === "structure") {
@@ -73,6 +95,7 @@ export function AddLocationModal({
     setDescription("")
     setSelectedBiome("")
     setSelectedStructure("")
+    setColor("")
   }
 
   if (!isOpen) return null
@@ -96,6 +119,7 @@ export function AddLocationModal({
       z: Number.parseInt(z) || 0,
       description,
       world_id: activeWorld,
+      color: color || null,
     }
 
     if (editingLocation && onEdit) {
@@ -103,6 +127,7 @@ export function AddLocationModal({
         ...locationData,
         id: editingLocation.id,
         created_at: editingLocation.created_at,
+        favorite: editingLocation.favorite,
       })
     } else {
       onAdd(locationData)
@@ -130,7 +155,7 @@ export function AddLocationModal({
         {/* Header */}
         <div className="sticky top-0 bg-card border-b border-border/50 p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary/10 border border-primary/50 flex items-center justify-center">
+            <div className="w-10 h-10 bg-primary/10 border border-primary flex items-center justify-center">
               <MapPin className="w-5 h-5 text-primary" />
             </div>
             <div>
@@ -278,6 +303,16 @@ export function AddLocationModal({
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Notas sobre esta ubicación..."
               className="min-h-[80px] font-mono bg-background border-border/50 resize-none"
+            />
+          </div>
+
+          {/* Color Picker */}
+          <div>
+            <ColorPicker
+              value={color}
+              onChange={setColor}
+              defaultColor={defaultColors[dimension]}
+              label="COLOR EN MAPA (OPCIONAL)"
             />
           </div>
 
