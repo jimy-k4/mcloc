@@ -1,11 +1,13 @@
 "use client"
 
 import type React from "react"
-
 import { useRef, useEffect, useState, useCallback, useMemo } from "react"
-import { ZoomIn, ZoomOut, Maximize2, Move, Crosshair, MapPinOff } from "lucide-react"
+import { ZoomIn, ZoomOut, Maximize2, Move, Crosshair, MapPinOff, Link, X, Ruler } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getLocationIcon } from "@/lib/location-config"
+import { ConnectionLayer, type Connection } from "@/components/connection-layer"
+import { OrientationOverlay } from "@/components/orientation-overlay"
+import { DistancePanel } from "@/components/distance-panel"
 import type { Location, Dimension } from "@/lib/types"
 
 interface CoordinateMapProps {
@@ -22,6 +24,17 @@ export function CoordinateMap({ locations, activeDimension }: CoordinateMapProps
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const [hoveredLocation, setHoveredLocation] = useState<Location | null>(null)
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
+  const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 })
+
+  // Connection Mode (Nether only)
+  const [connectionMode, setConnectionMode] = useState(false)
+  const [connections, setConnections] = useState<Connection[]>([])
+  const [connectFirst, setConnectFirst] = useState<string | null>(null)
+
+  // Distance panel - select two locations
+  const [distanceMode, setDistanceMode] = useState(false)
+  const [distanceFirst, setDistanceFirst] = useState<string | null>(null)
+  const [selectedForDistance, setSelectedForDistance] = useState<[string, string] | null>(null)
 
   const filteredLocations = useMemo(
     () => locations.filter((loc) => loc.dimension === activeDimension && loc.type !== "screenshot"),
@@ -76,6 +89,7 @@ export function CoordinateMap({ locations, activeDimension }: CoordinateMapProps
     const rect = container.getBoundingClientRect()
     canvas.width = rect.width
     canvas.height = rect.height
+    setCanvasSize({ w: rect.width, h: rect.height })
 
     // Background
     ctx.fillStyle = "#0a0a0a"
@@ -123,20 +137,19 @@ export function CoordinateMap({ locations, activeDimension }: CoordinateMapProps
     filteredLocations.forEach((loc) => {
       const pos = worldToCanvas(loc.x, loc.z, canvas.width, canvas.height)
       const isHovered = hoveredLocation?.id === loc.id
-      const radius = isHovered ? 14 : 10
+      const isSelected = connectFirst === loc.id
+      const radius = isHovered || isSelected ? 14 : 10
 
       // Glow effect
       const gradient = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, radius * 2)
-      let color = "34, 197, 94" // default green
+      let color = "34, 197, 94"
       if (loc.color) {
-        // Convert hex to RGB
         const hex = loc.color.replace("#", "")
         const r = Number.parseInt(hex.substring(0, 2), 16)
         const g = Number.parseInt(hex.substring(2, 4), 16)
         const b = Number.parseInt(hex.substring(4, 6), 16)
         color = `${r}, ${g}, ${b}`
       } else {
-        // Use dimension default colors
         color =
           loc.dimension === "overworld" ? "34, 197, 94" : loc.dimension === "nether" ? "239, 68, 68" : "168, 85, 247"
       }
@@ -154,10 +167,18 @@ export function CoordinateMap({ locations, activeDimension }: CoordinateMapProps
       ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2)
       ctx.fill()
 
-      // Border
-      ctx.strokeStyle = isHovered ? "#ffffff" : `rgba(${color}, 0.8)`
-      ctx.lineWidth = isHovered ? 3 : 2
-      ctx.stroke()
+      // Border - highlight selected for connection
+      if (isSelected) {
+        ctx.strokeStyle = "#f59e0b"
+        ctx.lineWidth = 3
+        ctx.setLineDash([4, 2])
+        ctx.stroke()
+        ctx.setLineDash([])
+      } else {
+        ctx.strokeStyle = isHovered ? "#ffffff" : `rgba(${color}, 0.8)`
+        ctx.lineWidth = isHovered ? 3 : 2
+        ctx.stroke()
+      }
 
       // Label
       if (zoom > 0.5 || isHovered) {
@@ -171,9 +192,34 @@ export function CoordinateMap({ locations, activeDimension }: CoordinateMapProps
         ctx.fillText(`${loc.x}, ${loc.z}`, pos.x, pos.y - radius - 20)
       }
     })
-  }, [filteredLocations, zoom, offset, hoveredLocation, worldToCanvas])
+  }, [filteredLocations, zoom, offset, hoveredLocation, worldToCanvas, connectFirst])
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    if (distanceMode && hoveredLocation) {
+      if (!distanceFirst) {
+        setDistanceFirst(hoveredLocation.id)
+      } else if (hoveredLocation.id !== distanceFirst) {
+        setSelectedForDistance([distanceFirst, hoveredLocation.id])
+        setDistanceFirst(null)
+        setDistanceMode(false)
+      }
+      return
+    }
+    if (connectionMode && hoveredLocation) {
+      if (!connectFirst) {
+        setConnectFirst(hoveredLocation.id)
+      } else if (hoveredLocation.id !== connectFirst) {
+        const newConnection: Connection = {
+          id: `${connectFirst}-${hoveredLocation.id}-${Date.now()}`,
+          from: connectFirst,
+          to: hoveredLocation.id,
+          color: "#ef4444",
+        }
+        setConnections((prev) => [...prev, newConnection])
+        setConnectFirst(null)
+      }
+      return
+    }
     setIsDragging(true)
     setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y })
   }
@@ -193,7 +239,6 @@ export function CoordinateMap({ locations, activeDimension }: CoordinateMapProps
         y: e.clientY - dragStart.y,
       })
     } else {
-      // Check hover
       let found: Location | null = null
       for (const loc of filteredLocations) {
         const pos = worldToCanvas(loc.x, loc.z, canvas.width, canvas.height)
@@ -233,6 +278,19 @@ export function CoordinateMap({ locations, activeDimension }: CoordinateMapProps
     setOffset({ x: 0, y: 0 })
   }
 
+  const toggleConnectionMode = () => {
+    setConnectionMode((prev) => !prev)
+    setConnectFirst(null)
+  }
+
+  const handleDeleteConnection = (id: string) => {
+    setConnections((prev) => prev.filter((c) => c.id !== id))
+  }
+
+  const handleChangeConnectionColor = (id: string, color: string) => {
+    setConnections((prev) => prev.map((c) => (c.id === id ? { ...c, color } : c)))
+  }
+
   return (
     <div className="border border-border/50 bg-card/30 overflow-hidden">
       {/* Controls */}
@@ -243,6 +301,32 @@ export function CoordinateMap({ locations, activeDimension }: CoordinateMapProps
         </div>
 
         <div className="flex items-center gap-1">
+          {/* Distance Mode toggle */}
+          <Button
+            variant={distanceMode ? "default" : "ghost"}
+            size="sm"
+            className={`h-7 text-[10px] font-mono gap-1 ${distanceMode ? "bg-accent hover:bg-accent/80 text-accent-foreground" : ""}`}
+            onClick={() => {
+              setDistanceMode((prev) => !prev)
+              setDistanceFirst(null)
+            }}
+          >
+            {distanceMode ? <X className="w-3 h-3" /> : <Ruler className="w-3 h-3" />}
+            {distanceMode ? "SALIR" : "MEDIR"}
+          </Button>
+
+          {/* Connection Mode toggle - Nether only */}
+          {activeDimension === "nether" && (
+            <Button
+              variant={connectionMode ? "default" : "ghost"}
+              size="sm"
+              className={`h-7 text-[10px] font-mono gap-1 ${connectionMode ? "bg-red-500 hover:bg-red-600 text-white" : ""}`}
+              onClick={toggleConnectionMode}
+            >
+              {connectionMode ? <X className="w-3 h-3" /> : <Link className="w-3 h-3" />}
+              {connectionMode ? "SALIR" : "CONECTAR"}
+            </Button>
+          )}
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setZoom((z) => Math.min(5, z * 1.2))}>
             <ZoomIn className="w-4 h-4" />
           </Button>
@@ -260,8 +344,28 @@ export function CoordinateMap({ locations, activeDimension }: CoordinateMapProps
         </div>
       </div>
 
+      {/* Distance mode hint */}
+      {distanceMode && (
+        <div className="px-3 py-2 bg-accent/10 border-b border-accent/30 font-mono text-[10px] text-accent flex items-center gap-2">
+          <Ruler className="w-3 h-3" />
+          {distanceFirst
+            ? "Selecciona el SEGUNDO punto para medir la distancia"
+            : "Selecciona el PRIMER punto para medir"}
+        </div>
+      )}
+
+      {/* Connection mode hint */}
+      {connectionMode && (
+        <div className="px-3 py-2 bg-red-500/10 border-b border-red-500/30 font-mono text-[10px] text-red-400 flex items-center gap-2">
+          <Link className="w-3 h-3" />
+          {connectFirst
+            ? "Selecciona el SEGUNDO punto para crear la conexion"
+            : "Selecciona el PRIMER punto para conectar"}
+        </div>
+      )}
+
       {/* Canvas */}
-      <div ref={containerRef} className="relative h-[400px] cursor-move">
+      <div ref={containerRef} className={`relative h-[400px] ${connectionMode || distanceMode ? "cursor-crosshair" : "cursor-move"}`}>
         <canvas
           ref={canvasRef}
           onMouseDown={handleMouseDown}
@@ -271,6 +375,45 @@ export function CoordinateMap({ locations, activeDimension }: CoordinateMapProps
           className="w-full h-full"
         />
 
+        {/* Connection Layer overlay */}
+        {activeDimension === "nether" && connections.length > 0 && (
+          <ConnectionLayer
+            connections={connections}
+            locations={filteredLocations}
+            worldToCanvas={worldToCanvas}
+            canvasWidth={canvasSize.w}
+            canvasHeight={canvasSize.h}
+            onDeleteConnection={handleDeleteConnection}
+            onChangeColor={handleChangeConnectionColor}
+          />
+        )}
+
+        {/* Orientation Overlay */}
+        {canvasSize.w > 0 && (
+          <OrientationOverlay
+            canvasWidth={canvasSize.w}
+            canvasHeight={canvasSize.h}
+            originX={worldToCanvas(0, 0, canvasSize.w, canvasSize.h).x}
+            originY={worldToCanvas(0, 0, canvasSize.w, canvasSize.h).y}
+          />
+        )}
+
+        {/* Distance Panel */}
+        {selectedForDistance && (() => {
+          const locA = filteredLocations.find((l) => l.id === selectedForDistance[0])
+          const locB = filteredLocations.find((l) => l.id === selectedForDistance[1])
+          if (!locA || !locB) return null
+          return (
+            <div className="absolute top-3 left-3 z-20 w-64">
+              <DistancePanel
+                locationA={locA}
+                locationB={locB}
+                onClose={() => setSelectedForDistance(null)}
+              />
+            </div>
+          )
+        })()}
+
         {filteredLocations.length === 0 && (
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
             <div className="w-16 h-16 border border-dashed border-border/50 flex items-center justify-center mb-4">
@@ -279,7 +422,9 @@ export function CoordinateMap({ locations, activeDimension }: CoordinateMapProps
             <p className="font-mono text-sm text-muted-foreground">
               SIN UBICACIONES EN {activeDimension.toUpperCase()}
             </p>
-            <p className="font-mono text-xs text-muted-foreground/50 mt-1">Añade ubicaciones para verlas en el mapa</p>
+            <p className="font-mono text-xs text-muted-foreground/50 mt-1">
+              Añade ubicaciones para verlas en el mapa
+            </p>
           </div>
         )}
 
@@ -288,16 +433,12 @@ export function CoordinateMap({ locations, activeDimension }: CoordinateMapProps
           <div
             className="absolute pointer-events-none bg-background/95 border border-primary/50 p-3 z-10"
             style={{
-              left: Math.min(mousePos.x + 15, containerRef.current?.clientWidth! - 200),
-              top: Math.min(mousePos.y + 15, containerRef.current?.clientHeight! - 100),
+              left: Math.min(mousePos.x + 15, (containerRef.current?.clientWidth ?? 400) - 200),
+              top: Math.min(mousePos.y + 15, (containerRef.current?.clientHeight ?? 300) - 100),
             }}
           >
             <div className="flex items-center gap-2 mb-2">
-              <div
-                className={`w-6 h-6 flex items-center justify-center ${
-                  hoveredLocation.color ? `bg-${hoveredLocation.color}` : "bg-green-500"
-                }`}
-              >
+              <div className="w-6 h-6 flex items-center justify-center bg-primary/20">
                 {getLocationIcon(hoveredLocation.type, "w-4 h-4")}
               </div>
               <span className="font-bold text-sm">{hoveredLocation.name}</span>

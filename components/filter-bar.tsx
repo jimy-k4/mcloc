@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { Search, Grid3X3, List, Star } from "lucide-react"
+import { Search, Grid3X3, List, Star, ArrowRightLeft } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { LOCATION_TYPES, getLocationIcon, getDimensionIcon } from "@/lib/location-config"
@@ -17,6 +17,8 @@ interface FilterBarProps {
   onViewModeChange: (mode: "grid" | "list") => void
   activeDimension: Dimension
   onDimensionChange: (dimension: Dimension) => void
+  showNetherConversion: boolean
+  onNetherConversionChange: (show: boolean) => void
 }
 
 export function FilterBar({
@@ -28,6 +30,8 @@ export function FilterBar({
   onViewModeChange,
   activeDimension,
   onDimensionChange,
+  showNetherConversion,
+  onNetherConversionChange,
 }: FilterBarProps) {
   const dimensions: { value: Dimension; label: string; color: string }[] = [
     { value: "overworld", label: "Overworld", color: "text-emerald-400" },
@@ -87,6 +91,28 @@ export function FilterBar({
             {dim.label.toUpperCase()}
           </button>
         ))}
+
+        {/* Nether conversion toggle - only when Overworld selected */}
+        {activeDimension === "overworld" && (
+          <>
+            <div className="w-px h-6 bg-border/50 mx-1" />
+            <button
+              onClick={() => onNetherConversionChange(!showNetherConversion)}
+              className={`
+                flex items-center gap-2 px-3 py-1.5 text-xs font-mono tracking-wider
+                border transition-all duration-200
+                ${
+                  showNetherConversion
+                    ? "text-red-400 border-red-400 bg-red-400/10"
+                    : "bg-card/50 text-muted-foreground border-border/50 hover:border-red-400/50 hover:text-red-400"
+                }
+              `}
+            >
+              <ArrowRightLeft className="w-3.5 h-3.5" />
+              NETHER EQ.
+            </button>
+          </>
+        )}
       </div>
 
       {/* Filter chips */}

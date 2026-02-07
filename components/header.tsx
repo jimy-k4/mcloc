@@ -1,9 +1,10 @@
 "use client"
 
-import { MapPin, Plus, Blocks } from "lucide-react"
+import { MapPin, Plus, Blocks, Wrench } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { WorldSelector } from "@/components/world-selector"
 import type { World } from "@/lib/types"
+import Link from "next/link"
 
 interface HeaderProps {
   onAddClick: () => void
@@ -57,6 +58,13 @@ export function Header({ onAddClick, worlds, activeWorld, onWorldChange, onAddWo
                 <span className="text-xs font-mono text-muted-foreground">LOCAL</span>
               </div>
             </div>
+
+            <Link href="/tools">
+              <Button variant="outline" size="sm" className="gap-2 font-mono text-xs h-12 bg-transparent">
+                <Wrench className="w-4 h-4" />
+                <span className="hidden sm:inline">HERRAMIENTAS</span>
+              </Button>
+            </Link>
 
             {/* Add button */}
             <Button
