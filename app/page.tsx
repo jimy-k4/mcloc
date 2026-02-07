@@ -28,6 +28,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("")
   const [mapDimension, setMapDimension] = useState<Dimension>("overworld")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [showNetherConversion, setShowNetherConversion] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -186,6 +187,8 @@ export default function Home() {
           onViewModeChange={setViewMode}
           activeDimension={mapDimension}
           onDimensionChange={setMapDimension}
+          showNetherConversion={showNetherConversion}
+          onNetherConversionChange={setShowNetherConversion}
         />
 
         <CoordinateMap locations={filteredLocations} activeDimension={mapDimension} />
@@ -196,6 +199,7 @@ export default function Home() {
           onEdit={handleOpenEdit}
           onToggleFavorite={handleToggleFavorite}
           viewMode={viewMode}
+          showNetherConversion={showNetherConversion}
         />
       </main>
 

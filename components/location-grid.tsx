@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Trash2, Pencil, Star } from "lucide-react"
+import { Trash2, Pencil, Star, ArrowRightLeft } from "lucide-react"
+import { overworldToNether } from "@/lib/coordinate-conversion"
 import { Button } from "@/components/ui/button"
 import { getLocationIcon, getDimensionColor, getDimensionLabel, getTypeLabel } from "@/lib/location-config"
 import type { Location } from "@/lib/types"
@@ -22,9 +23,10 @@ interface LocationGridProps {
   onEdit: (location: Location) => void
   onToggleFavorite: (id: string, favorite: boolean) => void
   viewMode: "grid" | "list"
+  showNetherConversion: boolean
 }
 
-export function LocationGrid({ locations, onDelete, onEdit, onToggleFavorite, viewMode }: LocationGridProps) {
+export function LocationGrid({ locations, onDelete, onEdit, onToggleFavorite, viewMode, showNetherConversion }: LocationGridProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [locationToDelete, setLocationToDelete] = useState<Location | null>(null)
 
@@ -66,6 +68,7 @@ export function LocationGrid({ locations, onDelete, onEdit, onToggleFavorite, vi
               onDelete={() => handleDeleteClick(location)}
               onEdit={() => onEdit(location)}
               onToggleFavorite={() => onToggleFavorite(location.id, !location.favorite)}
+              showNetherConversion={showNetherConversion}
             />
           ))}
         </div>
@@ -78,6 +81,7 @@ export function LocationGrid({ locations, onDelete, onEdit, onToggleFavorite, vi
               onDelete={() => handleDeleteClick(location)}
               onEdit={() => onEdit(location)}
               onToggleFavorite={() => onToggleFavorite(location.id, !location.favorite)}
+              showNetherConversion={showNetherConversion}
             />
           ))}
         </div>
@@ -113,13 +117,17 @@ function LocationListItem({
   onDelete,
   onEdit,
   onToggleFavorite,
+  showNetherConversion,
 }: {
   location: Location
   onDelete: () => void
   onEdit: () => void
   onToggleFavorite: () => void
+  showNetherConversion: boolean
 }) {
   const dimensionColor = getDimensionColor(location.dimension)
+  const showNether = showNetherConversion && location.dimension === "overworld"
+  const netherCoords = showNether ? overworldToNether({ x: location.x, y: location.y, z: location.z }) : null
 
   return (
     <div className="flex items-center gap-4 p-4 bg-card/30 hover:bg-card/50 transition-colors">
@@ -142,16 +150,24 @@ function LocationListItem({
       </div>
 
       <div className="flex items-center gap-6 shrink-0">
-        <div className="flex gap-4 font-mono text-sm">
-          <span>
-            <span className="text-red-400">X</span> {location.x}
-          </span>
-          <span>
-            <span className="text-green-400">Y</span> {location.y}
-          </span>
-          <span>
-            <span className="text-blue-400">Z</span> {location.z}
-          </span>
+        <div className="flex flex-col gap-1">
+          <div className="flex gap-4 font-mono text-sm">
+            <span>
+              <span className="text-red-400">X</span> {location.x}
+            </span>
+            <span>
+              <span className="text-green-400">Y</span> {location.y}
+            </span>
+            <span>
+              <span className="text-blue-400">Z</span> {location.z}
+            </span>
+          </div>
+          {netherCoords && (
+            <div className="flex items-center gap-2 font-mono text-[10px] text-red-400/70">
+              <ArrowRightLeft className="w-3 h-3" />
+              <span>NETHER: {netherCoords.x}, {netherCoords.y}, {netherCoords.z}</span>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-1">
           <Button
@@ -189,13 +205,17 @@ function LocationCard({
   onDelete,
   onEdit,
   onToggleFavorite,
+  showNetherConversion,
 }: {
   location: Location
   onDelete: () => void
   onEdit: () => void
   onToggleFavorite: () => void
+  showNetherConversion: boolean
 }) {
   const dimensionColor = getDimensionColor(location.dimension)
+  const showNether = showNetherConversion && location.dimension === "overworld"
+  const netherCoords = showNether ? overworldToNether({ x: location.x, y: location.y, z: location.z }) : null
 
   return (
     <div className="group relative border border-border/50 bg-card/50 hover:border-primary/50 transition-all duration-300 overflow-hidden">
@@ -230,6 +250,12 @@ function LocationCard({
             <CoordDisplay label="Y" value={location.y} color="text-green-400" />
             <CoordDisplay label="Z" value={location.z} color="text-blue-400" />
           </div>
+          {netherCoords && (
+            <div className="mt-2 pt-2 border-t border-border/20 flex items-center justify-center gap-2 font-mono text-[10px] text-red-400/70">
+              <ArrowRightLeft className="w-3 h-3" />
+              <span>NETHER: {netherCoords.x}, {netherCoords.y}, {netherCoords.z}</span>
+            </div>
+          )}
         </div>
 
         {/* Description */}
