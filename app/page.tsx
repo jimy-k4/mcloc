@@ -28,6 +28,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("")
   const [mapDimension, setMapDimension] = useState<Dimension>("overworld")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [showNetherConversion, setShowNetherConversion] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -67,10 +68,11 @@ export default function Home() {
 
       const matchesType = activeFilter === "all" || activeFilter === "favorites" || loc.type === activeFilter
       const matchesFavorites = activeFilter !== "favorites" || loc.favorite
+      const matchesDimension = loc.dimension === mapDimension
       const matchesSearch =
         loc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         loc.description?.toLowerCase().includes(searchQuery.toLowerCase())
-      return matchesType && matchesFavorites && matchesSearch
+      return matchesType && matchesFavorites && matchesDimension && matchesSearch
     })
     .sort((a, b) => {
       // Favorites first
@@ -176,8 +178,6 @@ export default function Home() {
       <main className="container mx-auto px-4 py-8 space-y-6">
         <StatsPanel locations={locations} />
 
-        <CoordinateMap locations={locations} activeDimension={mapDimension} onDimensionChange={setMapDimension} />
-
         <FilterBar
           activeFilter={activeFilter}
           onFilterChange={setActiveFilter}
@@ -185,7 +185,13 @@ export default function Home() {
           onSearchChange={setSearchQuery}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
+          activeDimension={mapDimension}
+          onDimensionChange={setMapDimension}
+          showNetherConversion={showNetherConversion}
+          onNetherConversionChange={setShowNetherConversion}
         />
+
+        <CoordinateMap locations={filteredLocations} activeDimension={mapDimension} />
 
         <LocationGrid
           locations={filteredLocations}
@@ -193,6 +199,7 @@ export default function Home() {
           onEdit={handleOpenEdit}
           onToggleFavorite={handleToggleFavorite}
           viewMode={viewMode}
+          showNetherConversion={showNetherConversion}
         />
       </main>
 
